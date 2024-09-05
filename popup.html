@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Accessibility & Screen Reader Analyzer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 10px;
+      width: 300px;
+    }
+    #suggestions {
+      white-space: pre-wrap;
+      background-color: #f1f1f1;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    #apiKeyInput {
+      width: 100%;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Accessibility & Screen Reader Analyzer</h1>
+  <label for="apiKeyInput">Enter your OpenAI API Key:</label>
+  <input type="text" id="apiKeyInput" placeholder="sk-...">
+  <button id="saveApiKey">Save API Key</button>
+
+  <div id="suggestions" style="display:none;">Loading...</div>
+  <script src="popup.js"></script>
+</body>
+</html> 
