@@ -24,6 +24,8 @@ This Chrome extension analyzes web pages for accessibility issues, including com
 3. Enter your OpenAI API key when prompted.
 4. The extension will analyze the page and provide accessibility improvement suggestions based on AI recommendations.
 
+<img src="./images/in-action.png" width="300"/>
+
 ## Files
 
 - **manifest.json**: Defines the extension's permissions and metadata.
@@ -38,6 +40,8 @@ To use this extension, you must provide your OpenAI API key. You can obtain it b
 
 1. In the extension popup, enter your API key in the provided input field.
 2. Click **Save API Key** to store it locally.
+
+<img src="./images/api-key.png" width="300"/>
 
 ## License
 
