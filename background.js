@@ -1,4 +1,4 @@
-// Filename: background.js
+// background.js
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.type === 'COLLECTED_DATA') {
@@ -15,33 +15,60 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       const prompt = `
 Analyze the following accessibility and screen reader information from a webpage. 
 - Suggest improvements for alt texts and ARIA labels.
-- Assess the reading order and roles to ensure that content is presented in a logical and accessible manner.
-- Provide any specific recommendations to improve the screen reader experience.
+- Assess the reading order and roles to ensure, content is presented logically and accessible manner.
+- Provide specific recommendations to improve the screen reader experience.
 
 Alt Texts: ${JSON.stringify(message.altTexts, null, 2)}
 ARIA Labels: ${JSON.stringify(message.ariaLabels, null, 2)}
 Reading Order and Roles: ${JSON.stringify(message.readingOrder, null, 2)}
 `;
 
+      // Retry logic with exponential backoff
+      async function fetchWithRetry(url, options, retries = 2, delay = 1000) {
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) {
+            if (response.status === 429 && retries > 0) {
+              console.warn(`Rate limit hit, retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              return fetchWithRetry(url, options, retries - 1, delay * 2); // Exponential backoff
+            }
+            console.error('Error fetching AI suggestions:', response.status, response.statusText);
+            throw new Error(`OpenAI API request failed: ${response.status} ${response.statusText}`);
+          }
+          return await response.json();
+        } catch (error) {
+          throw error;
+        }
+      }
+
+      const calculateMaxToken = (prompt) => {
+        const wordArray = prompt.trim().split(/\s+/);
+        const wordCount = wordArray.length;
+        const wordsPerToken = 75 / 100;
+        let maxTokens = Math.ceil(wordCount / wordsPerToken);
+        maxTokens = Math.ceil(maxTokens/100) * 100;
+        return maxTokens;
+      } 
+
       try {
-        const response = await fetch('https://api.openai.com/v1/completions', {
+        const data = await fetchWithRetry('https://api.openai.com/v1/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${openaiApiKey}`
           },
           body: JSON.stringify({
-            model: 'text-davinci-003',
+            model: 'gpt-3.5-turbo-instruct', // Specify the correct model
             prompt: prompt,
-            max_tokens: 500
+            max_tokens: 500, //calculateMaxToken(prompt), // Adjust if needed, depending on your prompt size // 75 words =~ 100 token
+            temperature: 0.5, // Adding temperature for variation in responses
+            top_p: 1,
+            frequency_penalty: 0,
+            presence_penalty: 0
           })
         });
 
-        if (!response.ok) {
-          throw new Error(`OpenAI API request failed: ${response.statusText}`);
-        }
-
-        const data = await response.json();
         const suggestions = data.choices[0].text.trim();
 
         // Send the suggestions to the popup
@@ -50,7 +77,7 @@ Reading Order and Roles: ${JSON.stringify(message.readingOrder, null, 2)}
         console.error('Error fetching AI suggestions:', error);
         chrome.runtime.sendMessage({
           type: 'AI_SUGGESTIONS',
-          suggestions: 'Failed to get suggestions. Please try again later.'
+          suggestions: `Failed to get suggestions: ${error.message}. Please check your OpenAI API key or try again later.`
         });
       }
     });
