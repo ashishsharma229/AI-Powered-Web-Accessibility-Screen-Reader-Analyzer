@@ -1,5 +1,3 @@
-// Filename: popup.js
-
 document.addEventListener('DOMContentLoaded', () => {
   const apiKeyInput = document.getElementById('apiKeyInput');
   const apiKeyInputLabel = document.getElementById('apiKeyInputLabel');

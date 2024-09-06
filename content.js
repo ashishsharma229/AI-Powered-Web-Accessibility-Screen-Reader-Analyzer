@@ -1,5 +1,3 @@
-// content.js
-
 (function() {
   // Collect all image alt texts on the page
   const allImages = document.querySelectorAll('img');
