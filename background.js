@@ -1,5 +1,3 @@
-// background.js
-
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.type === 'COLLECTED_DATA') {
     chrome.storage.local.get(['openaiApiKey'], async (result) => {
@@ -12,16 +10,23 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         return;
       }
 
-      const prompt = `
+// For production use, truncate the data to avoid token overflow
+const maxItems = 10; // Limiting the number of items to 10
+const altTexts = message.altTexts.slice(0, maxItems);
+const ariaLabels = message.ariaLabels.slice(0, maxItems);
+const readingOrder = message.readingOrder.slice(0, maxItems);
+
+const prompt = `
 Analyze the following accessibility and screen reader information from a webpage. 
 - Suggest improvements for alt texts and ARIA labels.
-- Assess the reading order and roles to ensure, content is presented logically and accessible manner.
-- Provide specific recommendations to improve the screen reader experience.
+- Assess the reading order and roles to ensure that content is presented in a logical and accessible manner.
+- Provide any specific recommendations to improve the screen reader experience.
 
-Alt Texts: ${JSON.stringify(message.altTexts, null, 2)}
-ARIA Labels: ${JSON.stringify(message.ariaLabels, null, 2)}
-Reading Order and Roles: ${JSON.stringify(message.readingOrder, null, 2)}
+Alt Texts: ${JSON.stringify(altTexts, null, 2)}
+ARIA Labels: ${JSON.stringify(ariaLabels, null, 2)}
+Reading Order and Roles: ${JSON.stringify(readingOrder, null, 2)}
 `;
+
 
       // Retry logic with exponential backoff
       async function fetchWithRetry(url, options, retries = 2, delay = 1000) {
@@ -40,15 +45,6 @@ Reading Order and Roles: ${JSON.stringify(message.readingOrder, null, 2)}
         } catch (error) {
           throw error;
         }
-      }
-
-      const calculateMaxToken = (prompt) => {
-        const wordArray = prompt.trim().split(/\s+/);
-        const wordCount = wordArray.length;
-        const wordsPerToken = 75 / 100;
-        let maxTokens = Math.ceil(wordCount / wordsPerToken);
-        maxTokens = Math.ceil(maxTokens/100) * 100;
-        return maxTokens;
       } 
 
       try {
@@ -61,7 +57,7 @@ Reading Order and Roles: ${JSON.stringify(message.readingOrder, null, 2)}
           body: JSON.stringify({
             model: 'gpt-3.5-turbo-instruct', // Specify the correct model
             prompt: prompt,
-            max_tokens: 500, //calculateMaxToken(prompt), // Adjust if needed, depending on your prompt size // 75 words =~ 100 token
+            max_tokens: 200, //calculateMaxToken(prompt), // Adjust if needed, depending on your prompt size // 75 words =~ 100 token
             temperature: 0.5, // Adding temperature for variation in responses
             top_p: 1,
             frequency_penalty: 0,
